@@ -13,53 +13,84 @@
             <img src="../joconde.jpg" class="mx-auto d-block" style="height: 20em;">
         </div>
         <div class="container btn justify-content-between d-flex" style="margin-top: 3em;">
+          <div class="btn-group">
             <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="temp">
                 Temperature
             </button>
+            <div class="dropdown-menu">
+                <a class="dropdown-item" id="livetemp">Live</a>
+                <a class="dropdown-item" id="mtemp">1m</a>
+                <a class="dropdown-item" id="htemp">1h</a>
+                <a class="dropdown-item" id="dtemp">1d</a>
+                <a class="dropdown-item" id="wtemp">1w</a>
+                <a class="dropdown-item" id="mtemp">1m</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" id="cdtemp">Choose Date</a>
+            </div>
+          </div>
+
+          <div class="btn-group">
             <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="hum">
                 Humidity
             </button>
+            <div class="dropdown-menu">
+                <a class="dropdown-item" id="livehum">Live</a>
+                <a class="dropdown-item" id="mhum">1m</a>
+                <a class="dropdown-item" id="hhum">1h</a>
+                <a class="dropdown-item" id="dhum">1d</a>
+                <a class="dropdown-item" id="whum">1w</a>
+                <a class="dropdown-item" id="mhum">1m</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" id="cdhum">Choose Date</a>
+            </div>
+          </div>
+
+          <div class="btn-group">
             <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="acc">
                 Acceleration
             </button>
             <div class="dropdown-menu">
-                <a class="dropdown-item" id="live">Live</a>
-                <a class="dropdown-item" id="m">1m</a>
-                <a class="dropdown-item" id="h">1h</a>
-                <a class="dropdown-item" id="d">1d</a>
-                <a class="dropdown-item" id="w">1w</a>
-                <a class="dropdown-item" id="m">1m</a>
+                <a class="dropdown-item" id="liveacc">Live</a>
+                <a class="dropdown-item" id="macc">1m</a>
+                <a class="dropdown-item" id="hacc">1h</a>
+                <a class="dropdown-item" id="dacc">1d</a>
+                <a class="dropdown-item" id="wacc">1w</a>
+                <a class="dropdown-item" id="macc">1m</a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" id="cd">Choose Date</a>
+                <a class="dropdown-item" id="cdacc">Choose Date</a>
             </div>
+          </div>
         </div>
         <div class="nptndchrt">
             <div class="npt"> <!--A voir pour cacher le input et le sortir quand on choisit choose date. Il faut aussi configurer la sortie sur node-red pour mongo-db-->
                 <div class="container-fluid" style="margin-top: 3em;">
                     <div class="row justify-content-between d-flex form-group">
                         <div class="col d-flex justify-content-start" id="datetemp" style="visibility:hidden;">
-                            <label for="choose temp date">Choose Date</label>
-                            <input type="date" class="form-control"  aria-describedby="choosedate" placeholder="Enter Date" style="width: 70%;">
+                            <label form="choose temp date">Choose Date</label>
+                            <input type="date" class="form-control"  aria-describedby="choosedatetemp" id="choosedatetemp" placeholder="Enter Date" style="width: 70%;">
                         </div>
                         <div class="col d-flex justify-content-center" id="datehum" style="visibility:hidden;">
-                            <label for="choose hum date">Choose Date</label>
-                            <input type="date" class="form-control" aria-describedby="emailHelp" placeholder="Enter Date" style="width: 70%;">
+                            <label form="choose hum date">Choose Date</label>
+                            <input type="date" class="form-control" aria-describedby="choosedatehum" id="choosedatehum" placeholder="Enter Date" style="width: 70%;">
                         </div>
                         <div class="col d-flex justify-content-end" id="dateacc" style="visibility:hidden;">
-                            <label for="choose acc date">Choose Date</label>
-                            <input type="date" class="form-control" aria-describedby="emailHelp" placeholder="Enter Date" style="width: 70%;">
+                            <label form="choose acc date">Choose Date</label>
+                            <input type="date" class="form-control" aria-describedby="choosedateacc" id="choosedateacc" placeholder="Enter Date" style="width: 70%;">
                         </div>
                     </div>
                 </div>
             </div>
             <div class="chart"> <!--A voir pour sortir le chart en fonction de l'appui sur le bouton. Il faut voir quelle librairies de chart on utilise, et afficher le bon chart en fonction du retour bouton-->
-                <div class="container" style="margin-top: 3em;">
-                    <div class="row justify-content-around">
+                <div class="container-fluid" style="margin-top: 3em;">
+                    <div class="row justify-content-between d-flex form-group">
                         <div class="col d-flex justify-content-start">
+                          <canvas class="col d-flex justify-content-start" id="charttemp"/>
                         </div>
                         <div class="col d-flex justify-content-center">
+                          <canvas class="col d-flex justify-content-center" id="charthum"/>
                         </div>
                         <div class="col d-flex justify-content-end">
+                          <canvas class="col d-flex justify-content-end" id="chartacc">
                         </div>
                     </div>
                 </div>
@@ -75,17 +106,21 @@
 </html>
 
 <script>
-    var mqtt;
+var charttemp;
+var charthum;
+var chartaccel;
+
+var mqtt;
 var reconnectTimeout = 2000;
 function MQTTconnect() {
-	mqtt = new Paho.MQTT.Client("192.168.1.72",1883,"/mqtt","web_" + parseInt(Math.random() * 100, 10) );
+	mqtt = new Paho.MQTT.Client("192.168.1.58",8000,"/mqtt","web_" + parseInt(Math.random() * 100, 10) );
 	var options = {
 		timeout: 3,
 		useSSL: false,
 		cleanSession: true,
 		onSuccess: onConnect,
 		onFailure: function (message) {
-			$('#status').val("Connection failed: " + message.errorMessage + "Retrying");
+			console.log("Connection failed: " + message.errorMessage + "Retrying");
 			setTimeout(MQTTconnect, reconnectTimeout);
 		}
 	};
@@ -95,17 +130,72 @@ function MQTTconnect() {
 }
 function onConnect() {
 	console.log('Connected to host ');
-	mqtt.subscribe("Topic", {qos: 0});
+	mqtt.subscribe("TPM/Chart/Temp", {qos: 0});
+  mqtt.subscribe("TPM/Chart/Hum", {qos: 0});
+  mqtt.subscribe("TPM/Chart/Accel", {qos: 0});
 	console.log('Topic');
 }
 function onConnectionLost(responseO) {
 	setTimeout(MQTTconnect, reconnectTimeout);
-	$('#status').val("connection lost: " + responseO.errorMessage + ". Reconnecting");
 };
+
 function onMessageArrived(message) {
 	var topic = message.destinationName;
 	var payload = message.payloadString;
-	$('#ws').prepend('<li>' + topic + ' = ' + payload + '</li>');
+	if(topic == "TPM/Chart/Temp"){
+    $("#charttemp").prepend(function(){
+      payload = JSON.parse(payload);
+      console.log(payload);
+      var ctx = document.getElementById('charttemp');
+      charttemp = new Chart(ctx, {
+        type : 'line',
+        data:payload,
+        options:{
+          scales:{
+            xAxes:[{
+              type:'date',
+            }]
+          }
+        }
+      })
+    })
+  }
+  if(topic == "TPM/Chart/Hum"){
+    $("#charthum").prepend(function(){
+      payload = JSON.parse(payload);
+      console.log(payload);
+      var ctx = document.getElementById('charthum');
+      charthum = new Chart(ctx, {
+        type : 'line',
+        data:payload,
+        options:{
+          scales:{
+            xAxes:[{
+              type:'date',
+            }]
+          }
+        }
+      })
+    })
+  }
+  if(topic == "TPM/Chart/Accel"){
+    $("#chartacc").prepend(function(){
+      payload = JSON.parse(payload);
+      console.log(payload);
+      var ctx = document.getElementById('chartacc');
+      chartacc = new Chart(ctx, {
+        type : 'line',
+        data:payload,
+        options:{
+          scales:{
+            xAxes:[{
+              type:'date',
+            }]
+          }
+        }
+      })
+    })
+  }
 };
 
 
@@ -113,28 +203,144 @@ $(document).ready(function() {
 	MQTTconnect();
 });
 
+    $("#livetemp").click(function(){
+      var message = new Paho.MQTT.Message("L");
+      message.destinationName = "TPM/Chart/Temp";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#mtemp").click(function(){
+      var message = new Paho.MQTT.Message("M");
+      message.destinationName = "TPM/Chart/Temp";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#htemp").click(function(){
+      var message = new Paho.MQTT.Message("H");
+      message.destinationName = "TPM/Chart/Temp";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#dtemp").click(function(){
+      var message = new Paho.MQTT.Message("D");
+      message.destinationName = "TPM/Chart/Temp";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#wtemp").click(function(){
+      var message = new Paho.MQTT.Message("W");
+      message.destinationName = "TPM/Chart/Temp";
+      message.qos = 0;
+      mqtt.send(message);
+    });
 
-    $("#temp").click(function(){
+    $("#mtemp").click(function(){
+      var message = new Paho.MQTT.Message("MONTH");
+      message.destinationName = "TPM/Chart/Temp";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+
+    $("#cdtemp").click(function(){
         if(getComputedStyle(document.getElementById("datetemp")).visibility != "hidden"){
             document.getElementById("datetemp").style.visibility = "hidden";
         } else {
             document.getElementById("datetemp").style.visibility = "visible";
         }
     });
-    $("#hum").click(function(){
+    $("#choosedatetemp").change(function(){
+      console.log($(this).val());
+      var message = new Paho.MQTT.Message($(this).val());
+      message.destinationName = "TPM/Btn/Hum";
+      message.qos = 0;
+      mqtt.send(message);
+    })
+
+    $("#livehum").click(function(){
+      var message = new Paho.MQTT.Message("L");
+      message.destinationName = "TPM/Btn/Hum";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#mhum").click(function(){
+      var message = new Paho.MQTT.Message("M");
+      message.destinationName = "TPM/Btn/Hum";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#hhum").click(function(){
+      var message = new Paho.MQTT.Message("H");
+      message.destinationName = "TPM/Btn/Hum";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#dhum").click(function(){
+      var message = new Paho.MQTT.Message("D");
+      message.destinationName = "TPM/Btn/Hum";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#whum").click(function(){
+      var message = new Paho.MQTT.Message("W");
+      message.destinationName = "TPM/Btn/Hum";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#mhum").click(function(){
+      var message = new Paho.MQTT.Message("MONTH");
+      message.destinationName = "TPM/Btn/Hum";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#cdhum").click(function(){
         if(getComputedStyle(document.getElementById("datehum")).visibility != "hidden"){
             document.getElementById("datehum").style.visibility = "hidden";
         } else {
             document.getElementById("datehum").style.visibility = "visible";
         }
     });
-    $("#acc").click(function(){
+
+    $("#liveacc").click(function(){
+      var message = new Paho.MQTT.Message("L");
+      message.destinationName = "TPM/Btn/Accel";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#macc").click(function(){
+      var message = new Paho.MQTT.Message("M");
+      message.destinationName = "TPM/Btn/Accel";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#hacc").click(function(){
+      var message = new Paho.MQTT.Message("H");
+      message.destinationName = "TPM/Btn/Accel";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#dacc").click(function(){
+      var message = new Paho.MQTT.Message("D");
+      message.destinationName = "TPM/Btn/Accel";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#wacc").click(function(){
+      var message = new Paho.MQTT.Message("W");
+      message.destinationName = "TPM/Btn/Accel";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $("#macc").click(function(){
+      var message = new Paho.MQTT.Message("MONTH");
+      message.destinationName = "TPM/Btn/Accel";
+      message.qos = 0;
+      mqtt.send(message);
+    });
+    $('#cdacc').click(function(){
         if(getComputedStyle(document.getElementById("dateacc")).visibility != "hidden"){
             document.getElementById("dateacc").style.visibility = "hidden";
         } else {
             document.getElementById("dateacc").style.visibility = "visible";
         }
     });
-
-
 </script>
