@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><title>Mosquitto Websockets</title>
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0"  charset=" utf-8 " />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <script src="mqttws31.js" type="text/javascript"></script>
 <script src="../jqplot_librairies/jquery.js" type="text/javascript"></script>
 <script src="../jqplot_librairies/jquery.jqplot.js" type="text/javascript"></script>
@@ -18,9 +18,9 @@
 var mqtt;
 var reconnectTimeout = 2000;
 var tempPoints = [];
-var tempDay = [];
-var plot = null; 
-var plot2 = null;
+var tempDayPoints;
+var plot = null;
+var plotDay = null;
 function MQTTconnect() {
 	mqtt = new Paho.MQTT.Client("localhost",8000,"/mqtt","web_" + parseInt(Math.random() * 100, 10) );
 	var options = {
@@ -40,27 +40,21 @@ function MQTTconnect() {
 function onConnect() {
 	$('#status').val('Connected to host ');
 	// Connection succeeded; subscribe to our topic
-	//mqtt.subscribe("TPM/led", {qos: 0});
-	//$('#topic').val("TPM/led")
-	//mqtt.subscribe([("TPM/Temp",0),("TPM/Aff",0)]);
-	//$('#topic').val("TPM/Temp and TPM/Aff")
-	//mqtt.subscribe(["TPM/Temp", "TPM/Aff"], [0,0]);
-	//$('#topic').val("TPM/Temp  TPM/Aff");
-	mqtt.subscribe("TPM/Temp", {qos: 0});
+	mqtt.subscribe("TPM/led", {qos: 0});
+	$('#topic').val("TPM/led")
+	mqtt.subscribe("TPM/Temp", {qos: 1});
 	$('#topic').val("TPM/Temp")
-	mqtt.subscribe("TPM/Aff", {qos: 0});
-	$('#topic').val("TPM/Aff")
 
 }
 function onConnectionLost(response) {
 	setTimeout(MQTTconnect, reconnectTimeout);
-	$('#status').val("connection lost: " + message.errorMessage + ". Reconnecting");
+	$('#status').val("connection lost: " + responseObject.errorMessage + ". Reconnecting");
 };
 function onMessageArrived(message) {
 	var topic = message.destinationName;
 	var payload = message.payloadString;
 	$('#ws').prepend('<li>' + topic + ' = ' + payload + '</li>');
-	$('#chart').ready(function(){ 
+	$('#chart').ready(function(){
 	var date = new Date ();
 	//var char = date.toString();
 	var char = date.getMinutes() + ":" + date.getSeconds();
@@ -69,14 +63,15 @@ function onMessageArrived(message) {
 	if (tempPoints.length > 20) tempPoints.shift();
 	tempPoints.push([char, parseFloat(payload)]);
 	if (plot) plot.destroy();
-  	plot = $.jqplot('chart', [tempPoints], {  
-      series:[{showMarker:true}],
+  	plot = $.jqplot('chart', [tempPoints], {
+      series:[{showMarker:false}],
       axes:{
         xaxis:{
 	  renderer: $.jqplot.CategoryAxisRenderer,
           label:'Date',
           labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
-	  tickRenderer:$.jqplot.CanvasAxisTickRenderer,
+					renderer : $.jqplot.CategoryAxisRenderer,
+	  			tickRenderer:$.jqplot.CanvasAxisTickRenderer,
         },
         yaxis:{
           label:'Temperature °C',
@@ -84,37 +79,33 @@ function onMessageArrived(message) {
         }
       }
   });
-});	
-
-$('#chart1').ready(function(){
-	var date = new Date ();
-	//var char = date.toString();
-	var char = date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
-	//var charr = char.toString();
-	console.log(tempPoints);
-	tempDay.push([char, parseFloat(payload)]);
-	if (plot2) plot2.destroy();
-  	plot2 = $.jqplot('chart1', [tempDay], {
-      series:[{showMarker:true}],
-	pointLabels: { show:true },
-      axes:{
-        xaxis:{
-	  renderer: $.jqplot.CategoryAxisRenderer,
-          label:'Date',
-          labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
-	  tickRenderer:$.jqplot.CanvasAxisTickRenderer,
-        },
-        yaxis:{
-          label:'Temperature °C',
-          labelRenderer: $.jqplot.CanvasAxisLabelRenderer
-        }
-      }
-  	});
-	});
-
+});
+$('#chart2').ready(function(){
+var date = new Date ();
+//var char = date.toString();
+var char = date.getHours() + ":" + date.getMinutes();
+//var charr = char.toString();
+console.log(JSON.parse(tempDayPoints));
+tempDayPoints.push([char, JSON.parse(payload)]);
+if (plot) plot.destroy();
+	plot = $.jqplot('chart', [tempDayPoints, {
+		series:[{showMarker:true}],
+		axes:{
+			xaxis:{
+	renderer: $.jqplot.CategoryAxisRenderer,
+				label:'Date (Journee)',
+				labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+				renderer : $.jqplot.CategoryAxisRenderer,
+				tickRenderer:$.jqplot.CanvasAxisTickRenderer,
+			},
+			yaxis:{
+				label:'Temperature °C',
+				labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+			}
+		}
+});
+});
 };
-
-	
 
 
 $(document).ready(function() {
@@ -123,19 +114,17 @@ $(document).ready(function() {
 </script>
 
 </head>
-</style>
 <body style="direction: ltr;">
 <h1>Mosquitto Websockets</h1>
-<div> 
+<div>
 <div>Subscribed to <input id="topic" disabled="disabled" type="text" /> Status: <input id="status" size="80" disabled="enable" type="text" /></div>
 <div>
 	<button id="on">ON</button>
 	<button id ="off">OFF</button>
-	<button id="Affichage">Affichage</button>
 </div>
 <div id="chart" style="height: 400px; width: 1000px;"></div>
-<div style="height: 100px; width: 1000px;"></div>
-<div id="chart1" style="height: 400px; width: 1000px;"></div>
+<div id="chart2" style="height: 400px; width: 1000px;"></div>
+
 <ul id="ws" style="font-family: 'Courier New',Courier,monospace;">
 
 </ul>
@@ -144,18 +133,13 @@ $( "#on" ).click(function() {
 	console.log("J'envoie ON");
 	message = new Paho.MQTT.Message("ON");
   	message.destinationName = "TPM/led";
-	mqtt.send(message); 
+	mqtt.send(message);
 });
 $( "#off" ).click(function() {
 	console.log("J'envoie OFF");
 	message = new Paho.MQTT.Message("OFF");
   	message.destinationName = "TPM/led";
-  	mqtt.send(message); 
-});
-$( "#Affichage" ).click(function() {
-	message = new Paho.MQTT.Message("2020-10-20");
-  	message.destinationName = "TPM/Aff_jour";
-  	mqtt.send(message); 
+  	mqtt.send(message);
 });
 </script>
 </div>
