@@ -23,7 +23,7 @@
                 <a class="dropdown-item" id="htemp">1h</a>
                 <a class="dropdown-item" id="dtemp">1d</a>
                 <a class="dropdown-item" id="wtemp">1w</a>
-                <a class="dropdown-item" id="mtemp">1m</a>
+                <a class="dropdown-item" id="montemp">1month</a>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" id="cdtemp">Choose Date</a>
             </div>
@@ -39,7 +39,7 @@
                 <a class="dropdown-item" id="hhum">1h</a>
                 <a class="dropdown-item" id="dhum">1d</a>
                 <a class="dropdown-item" id="whum">1w</a>
-                <a class="dropdown-item" id="mhum">1m</a>
+                <a class="dropdown-item" id="monhum">1month</a>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" id="cdhum">Choose Date</a>
             </div>
@@ -55,7 +55,7 @@
                 <a class="dropdown-item" id="hacc">1h</a>
                 <a class="dropdown-item" id="dacc">1d</a>
                 <a class="dropdown-item" id="wacc">1w</a>
-                <a class="dropdown-item" id="macc">1m</a>
+                <a class="dropdown-item" id="monacc">1month</a>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" id="cdacc">Choose Date</a>
             </div>
@@ -102,20 +102,37 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js" integrity="sha512-hZf9Qhp3rlDJBvAKvmiG+goaaKRZA6LKUO35oK6EsM0/kjPK32Yw7URqrq3Q+Nvbbt8Usss+IekL7CRn83dYmw==" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/moment@2.27.0"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@0.1.1"></script>
     </body>
 </html>
 
 <script>
-var charttemp;
-var charthum;
-var chartaccel;
+var charttemp = null;
+var charthum = null;
+var chartacc = null;
+var temp = [];
+var hum = [];
+var accx = [];
+var accy = [];
+var accz = [];
+var datet = [];
+var dateh = [];
+var datea = [];
+var nbt = 10;
+var nbh = 10;
+var nba = 10;
+var rttemp = true;
+var rthum = true;
+var rtacc = true;
+
 
 var mqtt;
 var reconnectTimeout = 2000;
 function MQTTconnect() {
 	mqtt = new Paho.MQTT.Client("192.168.1.58",8000,"/mqtt","web_" + parseInt(Math.random() * 100, 10) );
 	var options = {
-		timeout: 3,
+		timeout: 0,
 		useSSL: false,
 		cleanSession: true,
 		onSuccess: onConnect,
@@ -133,63 +150,436 @@ function onConnect() {
 	mqtt.subscribe("TPM/Chart/Temp", {qos: 0});
   mqtt.subscribe("TPM/Chart/Hum", {qos: 0});
   mqtt.subscribe("TPM/Chart/Accel", {qos: 0});
-	console.log('Topic');
+  mqtt.subscribe("TPM/Query/Chart/Temp", {qos: 0});
+  mqtt.subscribe("TPM/Query/Chart/Hum", {qos: 0});
+  mqtt.subscribe("TPM/Query/Chart/Accel", {qos: 0});
 }
 function onConnectionLost(responseO) {
 	setTimeout(MQTTconnect, reconnectTimeout);
+  console.log(responseO.errorMessage);
 };
 
 function onMessageArrived(message) {
 	var topic = message.destinationName;
 	var payload = message.payloadString;
-	if(topic == "TPM/Chart/Temp"){
+  console.log(topic);
+	if(topic == "TPM/Chart/Temp" & rttemp == true){
     $("#charttemp").prepend(function(){
       payload = JSON.parse(payload);
-      console.log(payload);
       var ctx = document.getElementById('charttemp');
+      if(temp.length > nbt){
+        temp.shift();
+        datet.shift();
+      }
+      temp.push(payload["temp"]);
+      datet.push(payload["date"]);
+      if(charttemp) charttemp.destroy();
       charttemp = new Chart(ctx, {
         type : 'line',
-        data:payload,
+        data:{
+          labels:datet,
+          datasets: [{
+            data: temp,
+            borderColor: '#000000',
+          }]
+        },
         options:{
           scales:{
             xAxes:[{
-              type:'date',
+              type: 'time',
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: "Date",
+                }
+            }],
+            yAxes:[{
+              display:true,
+              scaleLabel: {
+                  display: true,
+                  labelString: "Temperature",
+              }
             }]
           }
         }
       })
     })
   }
-  if(topic == "TPM/Chart/Hum"){
+  if(topic == "TPM/Query/Chart/Temp" & rttemp == false){
+    $("#charttemp").prepend(function(){
+      payload = JSON.parse(payload);
+      var ctx = document.getElementById('charttemp');
+      temp = [];
+      datet = [];
+      payload.forEach(function(el){
+        temp.push(el["temp"]);
+        datet.push(new Date(el["date"]));
+      })
+      if(charttemp) charttemp.destroy();
+      charttemp = new Chart(ctx, {
+        type : 'line',
+        data:{
+          labels:datet,
+          datasets: [{
+            data: temp,
+            borderColor: '#000000',
+          }]
+        },
+        options:{
+          scales:{
+            xAxes:[{
+              type: 'time',
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: "Date",
+                }
+            }],
+            yAxes:[{
+              display:true,
+              scaleLabel: {
+                  display: true,
+                  labelString: "Temperature",
+              }
+            }]
+          }
+        }
+      })
+    })
+  }
+  if(topic == "TPM/Query/Chart/Temp" & rttemp == true){
+    $("#charttemp").prepend(function(){
+      payload = JSON.parse(payload);
+      var ctx = document.getElementById('charttemp');
+      payload.forEach(function(el){
+        temp.push(el["temp"]);
+        datet.push(new Date(el["date"]));
+      })
+      if(charttemp) charttemp.destroy();
+      charttemp = new Chart(ctx, {
+        type : 'line',
+        data:{
+          labels:datet,
+          datasets: [{
+            data: temp,
+            borderColor: '#000000',
+          }]
+        },
+        options:{
+          scales:{
+            xAxes:[{
+              type: 'time',
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: "Date",
+                }
+            }],
+            yAxes:[{
+              display:true,
+              scaleLabel: {
+                  display: true,
+                  labelString: "Temperature",
+              }
+            }]
+          }
+        }
+      })
+    })
+  }
+  if(topic == "TPM/Chart/Hum" & rthum == true){
     $("#charthum").prepend(function(){
       payload = JSON.parse(payload);
-      console.log(payload);
       var ctx = document.getElementById('charthum');
+      if(hum.length > nbh){
+        hum.shift();
+        dateh.shift();
+      }
+      hum.push(payload["hum"]);
+      dateh.push(payload["date"]);
+      if(charthum) charthum.destroy();
       charthum = new Chart(ctx, {
         type : 'line',
-        data:payload,
+        data:{
+          labels:dateh,
+          datasets: [{
+            data: hum,
+            borderColor: '#000000',
+          }]
+        },
         options:{
           scales:{
             xAxes:[{
-              type:'date',
+              type: 'time',
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: "Date",
+                }
+            }],
+            yAxes:[{
+              display:true,
+              scaleLabel: {
+                  display: true,
+                  labelString: "Humidite",
+              }
             }]
           }
         }
       })
     })
   }
-  if(topic == "TPM/Chart/Accel"){
+  if(topic == "TPM/Query/Chart/Hum" & rthum == false){
+    console.log("coucou");
+    $("#charthum").prepend(function(){
+      payload = JSON.parse(payload);
+      var ctx = document.getElementById('charthum');
+      hum = [];
+      dateh = [];
+      payload.forEach(function(el){
+        hum.push(el["hum"]);
+        dateh.push(new Date(el["date"]));
+      })
+      if(charthum) charthum.destroy();
+      charthum = new Chart(ctx, {
+        type : 'line',
+        data:{
+          labels:dateh,
+          datasets: [{
+            data: hum,
+            borderColor: '#000000',
+          }]
+        },
+        options:{
+          scales:{
+            xAxes:[{
+              type: 'time',
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: "Date",
+                }
+            }],
+            yAxes:[{
+              display:true,
+              scaleLabel: {
+                  display: true,
+                  labelString: "Humidite",
+              }
+            }]
+          }
+        }
+      })
+    })
+  }
+  if(topic == "TPM/Query/Chart/Hum" & rthum == true){
+    console.log("coucou");
+    $("#charthum").prepend(function(){
+      payload = JSON.parse(payload);
+      var ctx = document.getElementById('charthum');
+      payload.forEach(function(el){
+        hum.push(el["hum"]);
+        dateh.push(new Date(el["date"]));
+      })
+      if(charthum) charthum.destroy();
+      charthum = new Chart(ctx, {
+        type : 'line',
+        data:{
+          labels:dateh,
+          datasets: [{
+            data: hum,
+            borderColor: '#000000',
+          }]
+        },
+        options:{
+          scales:{
+            xAxes:[{
+              type: 'time',
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: "Date",
+                }
+            }],
+            yAxes:[{
+              display:true,
+              scaleLabel: {
+                  display: true,
+                  labelString: "Humidite",
+              }
+            }]
+          }
+        }
+      })
+    })
+  }
+  if(topic == "TPM/Chart/Accel" & rtacc == true){
     $("#chartacc").prepend(function(){
       payload = JSON.parse(payload);
       console.log(payload);
       var ctx = document.getElementById('chartacc');
+      if(accx.length >= nba){
+        accx.shift();
+        accy.shift();
+        accz.shift();
+        datea.shift();
+      }
+      accx.push(payload["x"]);
+      accy.push(payload["y"]);
+      accz.push(payload["z"]);
+      datea.push(payload["date"]);
+      if(chartacc) chartacc.destroy();
       chartacc = new Chart(ctx, {
         type : 'line',
-        data:payload,
+        data:{
+          labels:datea,
+          datasets: [{
+              label:'x',
+            data: accx,
+            borderColor: '#ff0000',
+            },
+            {
+              label:'y',
+            data: accy,
+            borderColor: '#00ff00',
+            },
+            {
+              label:'z',
+            data: accz,
+            borderColor: '#0000ff',
+            }
+          ],
+        },
         options:{
           scales:{
             xAxes:[{
-              type:'date',
+              type: 'time',
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: "Date",
+                }
+            }],
+            yAxes:[{
+              display:true,
+              scaleLabel: {
+                  display: true,
+                  labelString: "Acceleration",
+              }
+            }]
+          }
+        }
+      })
+    })
+  }
+  if(topic == "TPM/Query/Chart/Accel" & rtacc == false){
+    $("#chartacc").prepend(function(){
+      payload = JSON.parse(payload);
+      console.log(payload);
+      var ctx = document.getElementById('chartacc');
+      accx = [];
+      accy = [];
+      accz = [];
+      datea = [];
+      payload.forEach(function(el){
+         accx.push(el["x"]);
+         accy.push(el["y"]);
+         accz.push(el["z"]);
+         datea.push(new Date(el["date"]));
+      })
+      if(chartacc) chartacc.destroy();
+      chartacc = new Chart(ctx, {
+        type : 'line',
+        data:{
+          labels:datea,
+          datasets: [{
+              label:'x',
+            data: accx,
+            borderColor: '#ff0000',
+            },
+            {
+              label:'y',
+            data: accy,
+            borderColor: '#00ff00',
+            },
+            {
+              label:'z',
+            data: accz,
+            borderColor: '#0000ff',
+            }
+          ],
+        },
+        options:{
+          scales:{
+            xAxes:[{
+              type: 'date',
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: "Date",
+                }
+            }],
+            yAxes:[{
+              display:true,
+              scaleLabel: {
+                  display: true,
+                  labelString: "Acceleration",
+              }
+            }]
+          }
+        }
+      })
+    })
+  }
+  if(topic == "TPM/Query/Chart/Accel" & rtacc == true){
+    $("#chartacc").prepend(function(){
+      payload = JSON.parse(payload);
+      console.log(payload);
+      var ctx = document.getElementById('chartacc');
+      payload.forEach(function(el){
+         accx.push(el["x"]);
+         accy.push(el["y"]);
+         accz.push(el["z"]);
+         datea.push(new Date(el["date"]));
+      })
+      if(chartacc) chartacc.destroy();
+      chartacc = new Chart(ctx, {
+        type : 'line',
+        data:{
+          labels:datea,
+          datasets: [{
+              label:'x',
+            data: accx,
+            borderColor: '#ff0000',
+            },
+            {
+              label:'y',
+            data: accy,
+            borderColor: '#00ff00',
+            },
+            {
+              label:'z',
+            data: accz,
+            borderColor: '#0000ff',
+            }
+          ],
+        },
+        options:{
+          scales:{
+            xAxes:[{
+              type: 'time',
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: "Date",
+                }
+            }],
+            yAxes:[{
+              display:true,
+              scaleLabel: {
+                  display: true,
+                  labelString: "Acceleration",
+              }
             }]
           }
         }
@@ -204,39 +594,59 @@ $(document).ready(function() {
 });
 
     $("#livetemp").click(function(){
-      var message = new Paho.MQTT.Message("L");
-      message.destinationName = "TPM/Chart/Temp";
-      message.qos = 0;
-      mqtt.send(message);
+      rttemp = true;
+      temp = [];
+      datet = [];
+      nbt = 20;
     });
     $("#mtemp").click(function(){
+      rttemp = true;
+      temp = [];
+      datet = [];
+      nbt = 10;
       var message = new Paho.MQTT.Message("M");
-      message.destinationName = "TPM/Chart/Temp";
+      message.destinationName = "TPM/Btn/Temp";
       message.qos = 0;
       mqtt.send(message);
     });
     $("#htemp").click(function(){
+      rttemp = true;
+      temp = [];
+      datet = [];
+      nbt = 10*60;
       var message = new Paho.MQTT.Message("H");
-      message.destinationName = "TPM/Chart/Temp";
+      message.destinationName = "TPM/Btn/Temp";
       message.qos = 0;
       mqtt.send(message);
     });
     $("#dtemp").click(function(){
+      rttemp = true;
+      temp = [];
+      datet = [];
+      nbt = 10*60*24;
       var message = new Paho.MQTT.Message("D");
-      message.destinationName = "TPM/Chart/Temp";
+      message.destinationName = "TPM/Btn/Temp";
       message.qos = 0;
       mqtt.send(message);
     });
     $("#wtemp").click(function(){
+      rttemp = true;
+      temp = [];
+      datet = [];
+      nbt = 10*60*24*7;
       var message = new Paho.MQTT.Message("W");
-      message.destinationName = "TPM/Chart/Temp";
+      message.destinationName = "TPM/Btn/Temp";
       message.qos = 0;
       mqtt.send(message);
     });
 
-    $("#mtemp").click(function(){
+    $("#montemp").click(function(){
+      rttemp = true;
+      temp = [];
+      datet = [];
+      nbt = 10*60*24*7*30;
       var message = new Paho.MQTT.Message("MONTH");
-      message.destinationName = "TPM/Chart/Temp";
+      message.destinationName = "TPM/Btn/Temp";
       message.qos = 0;
       mqtt.send(message);
     });
@@ -249,44 +659,65 @@ $(document).ready(function() {
         }
     });
     $("#choosedatetemp").change(function(){
-      console.log($(this).val());
+      rttemp = false;
       var message = new Paho.MQTT.Message($(this).val());
-      message.destinationName = "TPM/Btn/Hum";
-      message.qos = 0;
-      mqtt.send(message);
-    })
-
-    $("#livehum").click(function(){
-      var message = new Paho.MQTT.Message("L");
-      message.destinationName = "TPM/Btn/Hum";
+      message.destinationName = "TPM/Query/Temp";
       message.qos = 0;
       mqtt.send(message);
     });
+
+    $("#livehum").click(function(){
+      console.log("coucou2");
+      rthum = true;
+      hum = [];
+      dateh = [];
+      nbh = 20;
+    });
     $("#mhum").click(function(){
+      rthum = true;
+      hum = [];
+      dateh = [];
+      nbh = 10;
       var message = new Paho.MQTT.Message("M");
       message.destinationName = "TPM/Btn/Hum";
       message.qos = 0;
       mqtt.send(message);
     });
     $("#hhum").click(function(){
+      rthum = true;
+      hum = [];
+      dateh = [];
+      nbh = 10*60;
       var message = new Paho.MQTT.Message("H");
       message.destinationName = "TPM/Btn/Hum";
       message.qos = 0;
       mqtt.send(message);
     });
     $("#dhum").click(function(){
+      rthum = true;
+      hum = [];
+      dateh = [];
+      nbh = 10*60*24;
       var message = new Paho.MQTT.Message("D");
       message.destinationName = "TPM/Btn/Hum";
       message.qos = 0;
       mqtt.send(message);
     });
     $("#whum").click(function(){
+      rthum = true;
+      hum = [];
+      dateh = [];
+      nb = 10*60*24*7;
       var message = new Paho.MQTT.Message("W");
       message.destinationName = "TPM/Btn/Hum";
       message.qos = 0;
       mqtt.send(message);
     });
-    $("#mhum").click(function(){
+    $("#monhum").click(function(){
+      rthum = true;
+      hum = [];
+      dateh = [];
+      nbh = 10*60*24*7*30;
       var message = new Paho.MQTT.Message("MONTH");
       message.destinationName = "TPM/Btn/Hum";
       message.qos = 0;
@@ -299,38 +730,77 @@ $(document).ready(function() {
             document.getElementById("datehum").style.visibility = "visible";
         }
     });
-
-    $("#liveacc").click(function(){
-      var message = new Paho.MQTT.Message("L");
-      message.destinationName = "TPM/Btn/Accel";
+    $("#choosedatehum").change(function(){
+      rthum = false;
+      var message = new Paho.MQTT.Message($(this).val());
+      message.destinationName = "TPM/Query/Hum";
       message.qos = 0;
       mqtt.send(message);
     });
+
+    $("#liveacc").click(function(){
+      rtacc = true;
+      accx = [];
+      accy = [];
+      accz = [];
+      datea = [];
+      nba = 20;
+    });
     $("#macc").click(function(){
+      rtacc = true;
+      accx = [];
+      accy = [];
+      accz = [];
+      datea = [];
+      nba = 10;
       var message = new Paho.MQTT.Message("M");
       message.destinationName = "TPM/Btn/Accel";
       message.qos = 0;
       mqtt.send(message);
     });
     $("#hacc").click(function(){
+      rtacc = true;
+      accx = [];
+      accy = [];
+      accz = [];
+      datea = [];
+      nba = 10*60;
       var message = new Paho.MQTT.Message("H");
       message.destinationName = "TPM/Btn/Accel";
       message.qos = 0;
       mqtt.send(message);
     });
     $("#dacc").click(function(){
+      rtacc = true;
+      accx = [];
+      accy = [];
+      accz = [];
+      datea = [];
+      nba = 10*60*24;
       var message = new Paho.MQTT.Message("D");
       message.destinationName = "TPM/Btn/Accel";
       message.qos = 0;
       mqtt.send(message);
     });
     $("#wacc").click(function(){
+      rtacc = true;
+      accx = [];
+      accy = [];
+      accz = [];
+      datea = [];
+      nba = 10*60*24*7;
       var message = new Paho.MQTT.Message("W");
       message.destinationName = "TPM/Btn/Accel";
       message.qos = 0;
       mqtt.send(message);
     });
-    $("#macc").click(function(){
+    $("#monacc").click(function(){
+      rtacc = true;
+      accx = [];
+      accy = [];
+      accz = [];
+      datea = [];
+      nba = 10*60*24*7*30;
       var message = new Paho.MQTT.Message("MONTH");
       message.destinationName = "TPM/Btn/Accel";
       message.qos = 0;
@@ -342,5 +812,12 @@ $(document).ready(function() {
         } else {
             document.getElementById("dateacc").style.visibility = "visible";
         }
+    });
+    $("#choosedateacc").change(function(){
+      rtacc = false;
+      var message = new Paho.MQTT.Message($(this).val());
+      message.destinationName = "TPM/Query/Accel";
+      message.qos = 0;
+      mqtt.send(message);
     });
 </script>
