@@ -1,0 +1,92 @@
+
+<script type="text/x-red" data-template-name="BLE">
+    <div class="form-row">
+        <label for="node-input-uuid"><i class="fa fa-ellipsis-h"></i> UUID</label>
+        <input type="text" id="node-input-uuid" placeholder="optional device name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-external-link"></i> Outputs</label>
+    </div>
+    <div class="form-row">
+        <label for="node-input-topic"><i class="fa fa-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic" placeholder="optional topic prefix - defaults to device id">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Temperature</label>
+        <input type="checkbox" id="node-input-temperature" placeholder="">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Humidity</label>
+        <input type="checkbox" id="node-input-humidity" >
+    </div>
+    <div class="form-row">
+        <label for="node-input-name" style="width:25%"><i class="icon-tag"></i> Accelerometer</label>
+        <input type="checkbox" style="width:65%" id="node-input-accelerometer" />
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="BLE">
+   <p>Node to read from BLE Device</p>
+   <p>For this node to work correctly on Linux, Node-Red needs to be run as
+     <i>root</i>, this due to how Bluetooth 4.0 support is currently implemented
+      in Linux.
+	</p>
+	<p>
+		If no UUID is given, it will connect first BLE device it finds.
+	</p>
+	<p>
+		<b>Output data</b> :
+			<ul>
+				<li>Accelerometer : <b>msg : { x : valueX, y : valueY, z : valueZ }</b></li>
+				<li>Temperature : <b>msg : { temperature : currentTemperature }</b></li>
+				<li>Humidity : <b>msg : { humidity : currentHumidity }</b></li>
+			</ul>
+	</p>
+	<p>
+		<b>Input data</b> :
+			<ul>
+				<li>Led control : <b>msg.led</b> = 1 will turn on the led ; <b>msg.led</b> = 0 will turn off the led</li>
+				<li>Led info : if <b>msg.getState</b> is defined, it will send you the state of the led</li>
+			</ul>
+	</p>
+	
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('BLE',{
+        category: 'advanced-function',
+        color:"GoldenRod",
+        defaults: {
+            name: {value:"BLE"},
+            topic: {value:"BLE"},
+            uuid: {value:undefined},
+            temperature: {value:false},
+            humidity: {value:false},
+            accelerometer: {value:false}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "bluetooth.png",
+        label: function() {
+            return this.name||this.topic||"BLE";
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditsave: function() {
+           var mac = $("#node-input-uuid").val();
+           mac = mac.toLowerCase();
+           // nasty hack as I can't get global replace to work
+           mac = mac.replace(/:/gi,'');
+           mac = mac.replace(/:/gi,'');
+           mac = mac.replace(/:/gi,'');
+           mac = mac.replace(/:/gi,'');
+           mac = mac.toLowerCase();
+           $("#node-input-uuid").val(mac);
+        }
+    });
+</script>

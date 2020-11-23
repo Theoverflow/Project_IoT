@@ -1,0 +1,15 @@
+{
+  "name": "node-red-ble",
+  "version": "0.0.1",
+  "description": "BLE test node",
+  "author": "Simon Polette",
+  "license": "TODO",
+  "dependencies": {
+    "noble": "~1.3.0"
+  },
+  "node-red": {
+      "nodes": {
+          "BLE": "node-red-ble.js"
+      }
+  }
+}
