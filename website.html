@@ -662,13 +662,13 @@ $(document).ready(function() {
       rttemp = true;
       temp = [];
       datet = [];
-      nbt = 20;
+      nbt = 10;
     });
     $("#mtemp").click(function(){
       rttemp = true;
       temp = [];
       datet = [];
-      nbt = 10;
+      nbt = 30;
       var message = new Paho.MQTT.Message("M");
       message.destinationName = "TPM/Btn/Temp";
       message.qos = 0;
@@ -678,7 +678,7 @@ $(document).ready(function() {
       rttemp = true;
       temp = [];
       datet = [];
-      nbt = 10*60;
+      nbt = 30*60;
       var message = new Paho.MQTT.Message("H");
       message.destinationName = "TPM/Btn/Temp";
       message.qos = 0;
@@ -688,7 +688,7 @@ $(document).ready(function() {
       rttemp = true;
       temp = [];
       datet = [];
-      nbt = 10*60*24;
+      nbt = 30*60*24;
       var message = new Paho.MQTT.Message("D");
       message.destinationName = "TPM/Btn/Temp";
       message.qos = 0;
@@ -698,7 +698,7 @@ $(document).ready(function() {
       rttemp = true;
       temp = [];
       datet = [];
-      nbt = 10*60*24*7;
+      nbt = 30*60*24*7;
       var message = new Paho.MQTT.Message("W");
       message.destinationName = "TPM/Btn/Temp";
       message.qos = 0;
@@ -709,7 +709,7 @@ $(document).ready(function() {
       rttemp = true;
       temp = [];
       datet = [];
-      nbt = 10*60*24*7*30;
+      nbt = 30*60*24*7*30;
       var message = new Paho.MQTT.Message("MONTH");
       message.destinationName = "TPM/Btn/Temp";
       message.qos = 0;
@@ -735,13 +735,13 @@ $(document).ready(function() {
       rthum = true;
       hum = [];
       dateh = [];
-      nbh = 20;
+      nbh = 10;
     });
     $("#mhum").click(function(){
       rthum = true;
       hum = [];
       dateh = [];
-      nbh = 10;
+      nbh = 30;
       var message = new Paho.MQTT.Message("M");
       message.destinationName = "TPM/Btn/Hum";
       message.qos = 0;
@@ -751,7 +751,7 @@ $(document).ready(function() {
       rthum = true;
       hum = [];
       dateh = [];
-      nbh = 10*60;
+      nbh = 30*60;
       var message = new Paho.MQTT.Message("H");
       message.destinationName = "TPM/Btn/Hum";
       message.qos = 0;
@@ -761,7 +761,7 @@ $(document).ready(function() {
       rthum = true;
       hum = [];
       dateh = [];
-      nbh = 10*60*24;
+      nbh = 30*60*24;
       var message = new Paho.MQTT.Message("D");
       message.destinationName = "TPM/Btn/Hum";
       message.qos = 0;
@@ -771,7 +771,7 @@ $(document).ready(function() {
       rthum = true;
       hum = [];
       dateh = [];
-      nb = 10*60*24*7;
+      nb = 30*60*24*7;
       var message = new Paho.MQTT.Message("W");
       message.destinationName = "TPM/Btn/Hum";
       message.qos = 0;
@@ -781,7 +781,7 @@ $(document).ready(function() {
       rthum = true;
       hum = [];
       dateh = [];
-      nbh = 10*60*24*7*30;
+      nbh = 30*60*24*7*30;
       var message = new Paho.MQTT.Message("MONTH");
       message.destinationName = "TPM/Btn/Hum";
       message.qos = 0;
@@ -808,7 +808,7 @@ $(document).ready(function() {
       accy = [];
       accz = [];
       datea = [];
-      nba = 20;
+      nba = 10;
     });
     $("#macc").click(function(){
       rtacc = true;
@@ -816,7 +816,7 @@ $(document).ready(function() {
       accy = [];
       accz = [];
       datea = [];
-      nba = 10;
+      nba = 30;
       var message = new Paho.MQTT.Message("M");
       message.destinationName = "TPM/Btn/Accel";
       message.qos = 0;
@@ -828,7 +828,7 @@ $(document).ready(function() {
       accy = [];
       accz = [];
       datea = [];
-      nba = 10*60;
+      nba = 30*60;
       var message = new Paho.MQTT.Message("H");
       message.destinationName = "TPM/Btn/Accel";
       message.qos = 0;
@@ -840,7 +840,7 @@ $(document).ready(function() {
       accy = [];
       accz = [];
       datea = [];
-      nba = 10*60*24;
+      nba = 30*60*24;
       var message = new Paho.MQTT.Message("D");
       message.destinationName = "TPM/Btn/Accel";
       message.qos = 0;
@@ -852,7 +852,7 @@ $(document).ready(function() {
       accy = [];
       accz = [];
       datea = [];
-      nba = 10*60*24*7;
+      nba = 30*60*24*7;
       var message = new Paho.MQTT.Message("W");
       message.destinationName = "TPM/Btn/Accel";
       message.qos = 0;
@@ -864,7 +864,7 @@ $(document).ready(function() {
       accy = [];
       accz = [];
       datea = [];
-      nba = 10*60*24*7*30;
+      nba = 30*60*24*7*30;
       var message = new Paho.MQTT.Message("MONTH");
       message.destinationName = "TPM/Btn/Accel";
       message.qos = 0;
