@@ -9,7 +9,7 @@
     <body>
         <h1 class="text-center" id="ttl">Mona Lisa is Safe</h1> <!--Il faudra faire varier la valeur de Safe/in Danger/has been Stolen en fonction de l'alterte que l'on renvoit-->
         <div class="pct" style="margin-top: 3em;">
-            <img src="../joconde.jpg" class="mx-auto d-block" style="height: 20em;">
+            <img src="./joconde.jpg" class="mx-auto d-block" style="height: 20em;">
         </div>
         <div class="container btn justify-content-between d-flex" style="margin-top: 3em;">
           <div class="btn-group">
@@ -94,11 +94,13 @@
                     </div>
                 </div>
             </div>
-            <div class="msgalert" style="visibility: hidden">
-              <h1 class="text-center" id="msglrt"></h1>
-              <button type="button" class="btn btn-danger" id="rrmr">
-                  REARMER
-              </button>
+            <div class="container-fluid justify-content-center" style="visibility: hidden; margin-top:3em" id="msgalert">
+              <h1 class=" text-center" id="msglrt"></h1>
+              <div class="col d-flex justify-content-center">
+                <button type="button" class="btn btn-danger" id="rrmr">
+                    REARMER
+                </button>
+              </div>
             </div>
         </div>
         <script src="mqttws31.js" type="text/javascript"></script>
@@ -132,8 +134,8 @@ var rtacc = true;
 var alertetemp = false;
 var alertehum = false;
 var alerteacc = false;
-var alertemessage;
-var firstalert = true;
+var alertemessage=[" ", " ", " "];
+var lock = false;
 
 var mqtt;
 var reconnectTimeout = 2000;
@@ -168,63 +170,62 @@ function onConnectionLost(responseO) {
 };
 
 function onMessageArrived(message) {
+
 	var topic = message.destinationName;
 	var payload = message.payloadString;
   var payload2 = JSON.parse(payload);
-  console.log(topic);
   if(topic=="TPM/Chart/Temp"){
     if(payload2["temp"] > 27){
       alertetemp = true;
-      alertemessage = "Temperature trop élevée";
+      alertemessage[0] = "Temperature trop élevée";
     }
     else if(payload2["temp"] < 23){
       alertetemp = true;
-      alertemessage = "Temperature trop basse";
+      alertemessage[0] = "Temperature trop basse";
     }
     else{
       alertetemp = false;
+      alertemessage[0] = " ";
     }
   }
   if(topic=="TPM/Chart/Hum"){
     if(payload2["hum"] > 60){
       alertehum = true;
-      alertemessage = "Humidite trop élevée";
+      alertemessage[1] =  "Humidite trop élevée";
     }
     else if(payload2["hum"] < 40){
       alertehum = true;
-      alertemessage = "Humidite trop basse";
+      alertemessage[1] =  "Humidite trop basse";
     }
     else{
       alertehum = false;
+      alertemessage[1] = " ";
     }
   }
   if(topic=="TPM/Chart/Accel"){
     if(payload2["x"] > 10 ||payload2["y"] > 10 ||payload2["z"] > 1050 ){
       alerteacc = true;
-      alertemessage = "Voleur";
+      alertemessage[2] =  "Voleur";
     }
     else{
       alerteacc = false;
+      alertemessage[2] =  " ";
     }
   }
+  var mailmsg = "Alert : " + alertemessage[0] + " " + alertemessage[1] + " " + alertemessage[2];
+  document.getElementById("msglrt").innerHTML = mailmsg;
   if(alertetemp||alertehum||alerteacc){
-    if(firstalert){
-      firstalert = false;
-        document.getElementById("msglrt").style.visibility = "visible";
+    if(!lock){
+    lock = true;
+    document.getElementById("ttl").innerHTML = "Mona Lisa is In Danger !";
+    document.getElementById("msgalert").style.visibility = "visible";
+    var alertemess = new Paho.MQTT.Message(mailmsg);
+    alertemess.destinationName = "TPM/Alerte";
+    alertemess.qos = 0;
+    mqtt.send(alertemess);
     }
-    alertemessage = new Paho.MQTT.Message("ALERTE");
-    alertemessage.destinationName = "TPM/Alerte";
-    alertemessage.qos = 0;
-    mqtt.send(alertemessage);
-    alertemessage = null;
   }
-  if(!alertetemp & !alertehum & !alerteacc){
-    firstalert = true;
-    var rearmemessage = new Paho.MQTT.Message("REARMER");
-    rearmemessage.destinationName = "TPM/Alerte";
-    rearmemessage.qos = 0;
-    mqtt.send(rearmemessage);
-  }
+
 
 	if(topic == "TPM/Chart/Temp" & rttemp == true){
     $("#charttemp").prepend(function(){
@@ -884,7 +885,13 @@ $(document).ready(function() {
       mqtt.send(message);
     });
     $("#rrmr").click(function(){
-      document.getElementById("msglrt").style.visibility = "visible";
-
+      if(!alertetemp & !alertehum & !alerteacc){
+      lock = false;
+      document.getElementById("msgalert").style.visibility = "hidden";
+      document.getElementById("ttl").innerHTML = "Mona Lisa is Safe";
+      var rearmemessage = new Paho.MQTT.Message("REARMER");
+      rearmemessage.destinationName = "TPM/Alerte";
+      rearmemessage.qos = 0;
+      mqtt.send(rearmemessage);}
     });
 </script>
