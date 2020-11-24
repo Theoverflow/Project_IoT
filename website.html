@@ -4,11 +4,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta charset="UTF-8"/>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-        <link rel="stylesheet" type="text/css" href="./website.css">
 
     </head>
     <body>
-        <h1 class="text-center">Mona Lisa is Safe</h1> <!--Il faudra faire varier la valeur de Safe/in Danger/has been Stolen en fonction de l'alterte que l'on renvoit-->
+        <h1 class="text-center" id="ttl">Mona Lisa is Safe</h1> <!--Il faudra faire varier la valeur de Safe/in Danger/has been Stolen en fonction de l'alterte que l'on renvoit-->
         <div class="pct" style="margin-top: 3em;">
             <img src="../joconde.jpg" class="mx-auto d-block" style="height: 20em;">
         </div>
@@ -95,8 +94,13 @@
                     </div>
                 </div>
             </div>
+            <div class="msgalert" style="visibility: hidden">
+              <h1 class="text-center" id="msglrt"></h1>
+              <button type="button" class="btn btn-danger" id="rrmr">
+                  REARMER
+              </button>
+            </div>
         </div>
-        <script type="text/javascript" src='./website.js'></script>
         <script src="mqttws31.js" type="text/javascript"></script>
         <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
@@ -125,7 +129,11 @@ var nba = 10;
 var rttemp = true;
 var rthum = true;
 var rtacc = true;
-
+var alertetemp = false;
+var alertehum = false;
+var alerteacc = false;
+var alertemessage;
+var firstalert = true;
 
 var mqtt;
 var reconnectTimeout = 2000;
@@ -162,7 +170,62 @@ function onConnectionLost(responseO) {
 function onMessageArrived(message) {
 	var topic = message.destinationName;
 	var payload = message.payloadString;
+  var payload2 = JSON.parse(payload);
   console.log(topic);
+  if(topic=="TPM/Chart/Temp"){
+    if(payload2["temp"] > 27){
+      alertetemp = true;
+      alertemessage = "Temperature trop élevée";
+    }
+    else if(payload2["temp"] < 23){
+      alertetemp = true;
+      alertemessage = "Temperature trop basse";
+    }
+    else{
+      alertetemp = false;
+    }
+  }
+  if(topic=="TPM/Chart/Hum"){
+    if(payload2["hum"] > 60){
+      alertehum = true;
+      alertemessage = "Humidite trop élevée";
+    }
+    else if(payload2["hum"] < 40){
+      alertehum = true;
+      alertemessage = "Humidite trop basse";
+    }
+    else{
+      alertehum = false;
+    }
+  }
+  if(topic=="TPM/Chart/Accel"){
+    if(payload2["x"] > 10 ||payload2["y"] > 10 ||payload2["z"] > 1050 ){
+      alerteacc = true;
+      alertemessage = "Voleur";
+    }
+    else{
+      alerteacc = false;
+    }
+  }
+  if(alertetemp||alertehum||alerteacc){
+    if(firstalert){
+      firstalert = false;
+        document.getElementById("msglrt").style.visibility = "visible";
+    }
+    alertemessage = new Paho.MQTT.Message("ALERTE");
+    alertemessage.destinationName = "TPM/Alerte";
+    alertemessage.qos = 0;
+    mqtt.send(alertemessage);
+    alertemessage = null;
+  }
+  if(!alertetemp & !alertehum & !alerteacc){
+    firstalert = true;
+    var rearmemessage = new Paho.MQTT.Message("REARMER");
+    rearmemessage.destinationName = "TPM/Alerte";
+    rearmemessage.qos = 0;
+    mqtt.send(rearmemessage);
+  }
+
 	if(topic == "TPM/Chart/Temp" & rttemp == true){
     $("#charttemp").prepend(function(){
       payload = JSON.parse(payload);
@@ -179,8 +242,9 @@ function onMessageArrived(message) {
         data:{
           labels:datet,
           datasets: [{
+            label: "Temperature",
             data: temp,
-            borderColor: '#000000',
+            borderColor: alertetemp?'#FF0000':'#68B0AB',
           }]
         },
         options:{
@@ -221,8 +285,9 @@ function onMessageArrived(message) {
         data:{
           labels:datet,
           datasets: [{
+            label: "Temperature",
             data: temp,
-            borderColor: '#000000',
+            borderColor: alertetemp?'#FF0000':'#68B0AB',
           }]
         },
         options:{
@@ -261,8 +326,9 @@ function onMessageArrived(message) {
         data:{
           labels:datet,
           datasets: [{
+            label: "Temperature",
             data: temp,
-            borderColor: '#000000',
+            borderColor: alertetemp?'#FF0000':'#68B0AB',
           }]
         },
         options:{
@@ -303,8 +369,9 @@ function onMessageArrived(message) {
         data:{
           labels:dateh,
           datasets: [{
+            label: "Humidity",
             data: hum,
-            borderColor: '#000000',
+            borderColor: alertehum?'#FF0000':'#68B0AB',
           }]
         },
         options:{
@@ -330,7 +397,6 @@ function onMessageArrived(message) {
     })
   }
   if(topic == "TPM/Query/Chart/Hum" & rthum == false){
-    console.log("coucou");
     $("#charthum").prepend(function(){
       payload = JSON.parse(payload);
       var ctx = document.getElementById('charthum');
@@ -346,8 +412,9 @@ function onMessageArrived(message) {
         data:{
           labels:dateh,
           datasets: [{
+            label: "Humidity",
             data: hum,
-            borderColor: '#000000',
+            borderColor: alertehum?'#FF0000':'#68B0AB',
           }]
         },
         options:{
@@ -373,7 +440,6 @@ function onMessageArrived(message) {
     })
   }
   if(topic == "TPM/Query/Chart/Hum" & rthum == true){
-    console.log("coucou");
     $("#charthum").prepend(function(){
       payload = JSON.parse(payload);
       var ctx = document.getElementById('charthum');
@@ -387,8 +453,9 @@ function onMessageArrived(message) {
         data:{
           labels:dateh,
           datasets: [{
+            label: "Humidity",
             data: hum,
-            borderColor: '#000000',
+            borderColor: alertehum?'#FF0000':'#68B0AB',
           }]
         },
         options:{
@@ -416,7 +483,6 @@ function onMessageArrived(message) {
   if(topic == "TPM/Chart/Accel" & rtacc == true){
     $("#chartacc").prepend(function(){
       payload = JSON.parse(payload);
-      console.log(payload);
       var ctx = document.getElementById('chartacc');
       if(accx.length >= nba){
         accx.shift();
@@ -446,7 +512,7 @@ function onMessageArrived(message) {
             {
               label:'z',
             data: accz,
-            borderColor: '#0000ff',
+            borderColor: '#0000FF',
             }
           ],
         },
@@ -475,7 +541,6 @@ function onMessageArrived(message) {
   if(topic == "TPM/Query/Chart/Accel" & rtacc == false){
     $("#chartacc").prepend(function(){
       payload = JSON.parse(payload);
-      console.log(payload);
       var ctx = document.getElementById('chartacc');
       accx = [];
       accy = [];
@@ -534,7 +599,6 @@ function onMessageArrived(message) {
   if(topic == "TPM/Query/Chart/Accel" & rtacc == true){
     $("#chartacc").prepend(function(){
       payload = JSON.parse(payload);
-      console.log(payload);
       var ctx = document.getElementById('chartacc');
       payload.forEach(function(el){
          accx.push(el["x"]);
@@ -667,7 +731,6 @@ $(document).ready(function() {
     });
 
     $("#livehum").click(function(){
-      console.log("coucou2");
       rthum = true;
       hum = [];
       dateh = [];
@@ -819,5 +882,9 @@ $(document).ready(function() {
       message.destinationName = "TPM/Query/Accel";
       message.qos = 0;
       mqtt.send(message);
+    });
+    $("#rrmr").click(function(){
+      document.getElementById("msglrt").style.visibility = "visible";
+
     });
 </script>
